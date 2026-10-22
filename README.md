@@ -16,7 +16,7 @@ Four bounded specialists • FastAPI • LangGraph • React • PostgreSQL • 
 - **Optional LLM guidance:** Configure an OpenAI-compatible endpoint with `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` to enable bounded model suggestions for investigation focus, policy query refinement, discrepancy research and task ordering. Hard-coded rights and safety rules always remain authoritative. When the endpoint is not configured, specialist logic is deterministic. Model presence/absence is recorded per specialist; no suggestion is treated as verified fact.
 - **FHIR interoperability preview:** Approved tasks can be inspected as FHIR R4-shaped `Task` resources. **No live HAPI FHIR write adapter has been completed.**
 - **ML research track:** Separate reproducible UCI Diabetes readmission benchmark with patient-disjoint splitting, validation-only threshold tuning and held-out metrics. Never applied to dashboard patients.
-- **Authentic-data research tooling:** Read-only MIMIC-IV demo schema/count inspection script for locally downloaded official data. No patient data is committed; not linked to the demo patient identities.
+- **Authentic-data research tooling:** Read-only MIMIC-IV demo schema/count inspection and a **separate local FHIR-shaped Bundle exporter** for official demo encounters. No patient data is committed; outputs never enter the fictional operational cases.
 - **Testing and delivery:** Pytest end-to-end API tests, synthetic workflow evaluation, CI for JavaScript build/Python testing/container builds, Docker Compose with a PostgreSQL database and Nginx reverse proxy.
 
 ## Screens and use case
@@ -108,7 +108,13 @@ Obtain the open-access data from its [official PhysioNet demo page](https://phys
 python integrations/mimic_demo_inspect.py --directory research/data/mimic-iv-demo/2.2/hosp
 ```
 
-This deliberately reports aggregate counts and column names, not identifiable information or clinical model predictions. Credit: Johnson et al. MIMIC-IV Clinical Database Demo v2.2, DOI [10.13026/dp1f-ex47](https://doi.org/10.13026/dp1f-ex47).
+This deliberately reports aggregate counts and column names, not identifiable information or clinical model predictions. For a local patient/encounter mapping test (FHIR R4-shaped Bundle, no live writes), also run:
+
+```bash
+python integrations/mimic_to_fhir.py --directory research/data/mimic-iv-demo/2.2/hosp --out research/data/mimic-fhir-bundle.json --limit 30
+```
+
+The export keeps pseudonymous, locally linkable identifiers and is **not** suitable for public upload. It deliberately excludes lab/medication conversions until separately validated. Credit: Johnson et al. MIMIC-IV Clinical Database Demo v2.2, DOI [10.13026/dp1f-ex47](https://doi.org/10.13026/dp1f-ex47).
 
 ## Engineering boundaries and known limitations
 
@@ -116,7 +122,7 @@ This deliberately reports aggregate counts and column names, not identifiable in
 - **Four bounded specialists ≠ four autonomous LLMs by default:** Without configured external inference, their findings are deterministic and traceable. The optional model advisory pathway does not create autonomous writes; agents still require measured task-quality evaluations and threat modelling.
 - **Policy corpus is illustrative**, labeled `DEMO_POLICY` rather than falsely cited as an institution's policy or clinical guidance. The policies are not medical advice.
 - **FHIR Task output is a preview**, not a validated external integration or a substitute for full FHIR conformance testing. The fictional `Patient`/`Encounter` references are not actual HAPI resources.
-- **Not yet implemented:** external HAPI interoperability, Redis/Celery, n8n, MCP, end-to-end clinical workflow validation, OCR/deep-learning extraction, real-time observability, MLflow integration, deployment to Kubernetes. See [Roadmap](docs/ROADMAP.md). The existence of technology in a plan must never be interpreted as implementation.
+- **Not yet implemented:** external external HAPI interoperability (only local R4-shaped Bundle/Task outputs implemented), Redis/Celery, n8n, MCP, end-to-end clinical workflow validation, OCR/deep-learning extraction, real-time observability, MLflow integration, deployment to Kubernetes. See [Roadmap](docs/ROADMAP.md). The existence of technology in a plan must never be interpreted as implementation.
 - **Security limits:** a public demo with realistic personal health information would be inappropriate. Do not use any real PHI. Admin bootstrap and local JWT security are proof-of-concept features, not a claim of regulatory compliance.
 
 ## Further documentation

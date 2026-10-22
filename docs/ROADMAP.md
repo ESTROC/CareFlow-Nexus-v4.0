@@ -12,7 +12,7 @@
 - [x] Responsive React operations dashboard and case review workspace
 - [x] FHIR R4 Task JSON preview (not a server-side write)
 - [x] UCI group-disjoint ML training/evaluation source code
-- [x] MIMIC demo read-only local schema/count inspection tool
+- [x] MIMIC demo read-only local schema/count inspection and FHIR-shaped Patient/Encounter Bundle exporter
 - [x] Docker/CI definitions and Python integration tests
 
 ## Next — proof of engineering maturity
