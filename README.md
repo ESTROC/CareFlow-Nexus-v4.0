@@ -29,11 +29,11 @@ GitHub's **Security** navigation tab is a built-in repository feature; GitHub do
 - **Secured service:** Argon2 password hashes, expiring signed JWT, `admin`/`analyst`/`supervisor`/`auditor` roles, tenant-constrained case lookup, replay-safe task decisions and audit events.
 - **Four specialist investigations:** EHR timeline, policy research, conditional discrepancy resolution and administrative care coordination. **LangGraph** executes the conditional workflow when installed. Each specialist has a bounded set of allowed actions.
 - **Evidence validation:** Every finding and proposed task must cite a record or versioned **demo-policy** excerpt. Missing evidence causes an error rather than an unsupported result.
-- **Optional LLM guidance:** Configure an OpenAI-compatible endpoint with `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` to enable bounded model suggestions for investigation focus, policy query refinement, discrepancy research and task ordering. Hard-coded rights and safety rules always remain authoritative. When the endpoint is not configured, specialist logic is deterministic. Model presence/absence is recorded per specialist; no suggestion is treated as verified fact.
+- **LLM tool use (opt-in):** Four specialists can request role-allowlisted read-only tools, inspect tool results and submit bounded suggestions over compatible Grok/Groq model endpoints. Hard-coded evidence, authorization and human approvals remain authoritative; traces capture actual tool calls, latency and tokens. **Provider-backed performance is not yet verified.**
 - **FHIR interoperability preview:** Approved tasks can be inspected as FHIR R4-shaped `Task` resources. **No live HAPI FHIR write adapter has been completed.**
 - **ML research track:** Separate reproducible UCI Diabetes readmission benchmark with patient-disjoint splitting, validation-only threshold tuning and held-out metrics. Never applied to dashboard patients.
 - **Authentic-data research tooling:** Read-only MIMIC-IV demo schema/count inspection and a **separate local FHIR-shaped Bundle exporter** for official demo encounters. No patient data is committed; outputs never enter the fictional operational cases.
-- **Testing and delivery:** Pytest end-to-end API tests, synthetic workflow evaluation, CI for JavaScript build/Python testing/container builds, Docker Compose with a PostgreSQL database and Nginx reverse proxy.
+- **Testing and delivery:** API tests, mocked LLM tool-call permission tests, a reproducible **120-case developer-labelled synthetic evaluation** (routing, citations, matching, latency and token metrics), CI for React/Python/container builds, and Docker Compose. Synthetic agreement **does not establish clinical or real-model accuracy**.
 
 ## Screens and use case
 
@@ -82,18 +82,38 @@ npm run dev
 
 Developer UI uses the Vite `/api` proxy to port 8000. `GET /api/v1/health` is a public liveness endpoint; all case data requires a token.
 
+## Optional Grok / Groq model-driven tools
+
+The four specialists run deterministic investigation logic when no model is configured. With a supported provider key, they may **select read-only tools, inspect their results, and return bounded suggestions**; neither the model nor its tools can approve tasks, change source evidence or make clinical decisions.
+
+In your local `.env`, set **one** provider (they are different companies):
+
+```dotenv
+# xAI Grok
+LLM_BASE_URL=https://api.x.ai/v1
+LLM_API_KEY=your_private_key
+LLM_MODEL=your_current_supported_grok_model
+```
+
+For **GroqCloud** instead, use `LLM_BASE_URL=https://api.groq.com/openai/v1` and a model currently available to your account. The shared implementation uses the OpenAI-compatible **Chat Completions tool-call API**; xAI recommends its newer Responses API for some reasoning models. Never commit a key or send real PHI. Provider-backed operation requires your own API key and has **not** been externally verified yet.
+
+- [Agent/tool integration, model telemetry, evaluation and honest limitations](docs/AGENT_EVALUATION.md)
+- Run the expanded **offline 120-case evaluation**: `python evals/benchmark.py --split holdout`
+- Optional **limited-cost** real provider test: `python evals/benchmark.py --live --split development --max-live-cases 3`
+
 ## Validate
 
 ```bash
 cd backend && pytest -q
 cd ..
 python ml/evaluate_workflow.py
+python evals/benchmark.py --split holdout
 cd frontend && npm install && npm run build
 cd ..
 docker compose config -q
 ```
 
-The synthetic evaluation (`ml/evaluate_workflow.py`) tests five **developer-authored** expected scenarios, not independently expert-labelled healthcare ground truth. CI outcomes are visible on the [GitHub Actions page](https://github.com/ESTROC/CareFlow-Nexus-v4.0/actions).
+The original synthetic evaluation has five developer-authored cases; the new reproducible holdout covers **120 additional developer-labelled synthetic scenarios**, not expert-verified clinical or LLM reasoning accuracy. CI outcomes are visible on the [GitHub Actions page](https://github.com/ESTROC/CareFlow-Nexus-v4.0/actions).
 
 ## Authentic data, without fraudulent joins
 
@@ -135,7 +155,7 @@ The export keeps pseudonymous, locally linkable identifiers and is **not** suita
 ## Engineering boundaries and known limitations
 
 - **Not enterprise production-ready:** Prototype bootstraps SQL tables with `create_all` rather than migrations; full production configuration would require Alembic, managed secrets, TLS, rate limiting, OIDC/SSO, backups, retention controls, external audit/approval policy and tenant-isolation review.
-- **Four bounded specialists ≠ four autonomous LLMs by default:** Without configured external inference, their findings are deterministic and traceable. The optional model advisory pathway does not create autonomous writes; agents still require measured task-quality evaluations and threat modelling.
+- **Four bounded specialists ≠ four autonomous LLMs by default:** Without configured external inference, their findings are deterministic and traceable. The bounded optional model tool-calling pathway cannot create autonomous writes; agents still require measured task-quality evaluations and threat modelling.
 - **Policy corpus is illustrative**, labeled `DEMO_POLICY` rather than falsely cited as an institution's policy or clinical guidance. The policies are not medical advice.
 - **FHIR Task output is a preview**, not a validated external integration or a substitute for full FHIR conformance testing. The fictional `Patient`/`Encounter` references are not actual HAPI resources.
 - **Not yet implemented:** external external HAPI interoperability (only local R4-shaped Bundle/Task outputs implemented), Redis/Celery, n8n, MCP, end-to-end clinical workflow validation, OCR/deep-learning extraction, real-time observability, MLflow integration, deployment to Kubernetes. See [Roadmap](docs/ROADMAP.md). The existence of technology in a plan must never be interpreted as implementation.
@@ -143,6 +163,7 @@ The export keeps pseudonymous, locally linkable identifiers and is **not** suita
 
 ## Further documentation
 
+- [Agent/tool evaluation and provider configuration](docs/AGENT_EVALUATION.md)
 - [System architecture and data contracts](docs/ARCHITECTURE.md)
 - [Threat model and test design](docs/SECURITY.md)
 - [Verification and planned releases](docs/ROADMAP.md)

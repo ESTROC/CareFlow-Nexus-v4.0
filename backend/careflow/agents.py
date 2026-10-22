@@ -7,6 +7,8 @@ never trusted for authorization, assertions, or task writes.
 """
 from __future__ import annotations
 from hashlib import sha256
+import re
+from .config import get_settings
 from typing import TypedDict, Any
 from .retrieval import search_policies
 from .fixtures import POLICIES
@@ -37,8 +39,10 @@ def timeline_agent(state: InvestigationState) -> InvestigationState:
     state["evidence"].append(evidence_item("EHR-RESULT", f"Pending-result flag: {record['pending_result']}; owner: {record['followup_owner'] or 'not recorded'}", "synthetic structured field"))
     for event in record["events"]:
         state["evidence"].append(evidence_item(event["id"], f"{event['at']} — {event['summary']}", "synthetic event log"))
-    recommendation = advise("ehr_timeline_investigator", {"encounter": record["encounter"], "event_kinds": [e["kind"] for e in record["events"]]}, ["focus_event_kinds", "reason"])
-    state["trace"].append({"agent": "EHR_TIMELINE", "action": "Read authorized encounter and event history", "tools": ["get_encounter", "get_events"], "status": "completed", "advisory": recommendation, "mode": "llm-guided" if recommendation else "deterministic"})
+    recommendation = advise("ehr_timeline_investigator", {"encounter": record["encounter"], "followup_status": record["followup_status"],
+                       "pending_result": record["pending_result"], "followup_owner": record["followup_owner"],
+                       "events": record["events"]}, ["focus_event_kinds", "reason"])
+    state["trace"].append({"agent": "EHR_TIMELINE", "action": "Read authorized encounter and event history", "tools": ["get_encounter", "get_events"], "status": "completed", "advisory": recommendation, "mode": trace_mode(recommendation)})
     return state
 
 
@@ -59,22 +63,50 @@ def policy_agent(state: InvestigationState) -> InvestigationState:
         add_finding(state, "FOLLOWUP_UNCONFIRMED", "A confirmed follow-up arrangement is not recorded in structured data.", ["EHR-FOLLOWUP", "POL-001"], "attention")
     if record["pending_result"] and not record["followup_owner"]:
         add_finding(state, "RESULT_OWNER_MISSING", "A pending test has no recorded administrative follow-up owner.", ["EHR-RESULT", "POL-002"], "attention")
-    state["trace"].append({"agent": "POLICY_RESEARCH", "action": "Search versioned workflow policy and cite excerpts", "tools": ["search_policies", "read_discharge_document"], "status": "completed", "advisory": recommendation, "mode": "llm-guided" if recommendation else "deterministic"})
+    state["trace"].append({"agent": "POLICY_RESEARCH", "action": "Search versioned workflow policy and cite excerpts", "tools": ["search_policies", "read_discharge_document"], "status": "completed", "advisory": recommendation, "mode": trace_mode(recommendation)})
     return state
 
 
+def document_claims_scheduled(document: str) -> bool:
+    """Conservative, explainable detection. Negations must not imply an appointment.
+
+    LLMs may recommend *investigation*, never establish an appointment status.
+    """
+    positive = re.compile(r"\b(?:appointment (?:has been |was )?scheduled|"
+                          r"appointment (?:has been |was )?(?:booked|confirmed)|"
+                          r"follow[- ]?up (?:has been |was )?arranged)\b", re.I)
+    for sentence in re.split(r"[.!?\n]", document):
+        for match in positive.finditer(sentence):
+            prefix = sentence[max(0, match.start()-45):match.start()].lower()
+            phrase = match.group(0).lower()
+            # Suppress negative statements, not just an exact string replacement.
+            if re.search(r"\b(?:no|not|never|unconfirmed|without)\b[^,;]{0,38}$", prefix):
+                continue
+            if re.search(r"\b(?:not|never)\b", phrase):
+                continue
+            return True
+    return False
+
+
 def needs_discrepancy(state: InvestigationState) -> str:
-    doc = state["record"].get("document", "").lower()
     status = state["record"]["followup_status"]
-    claims_scheduled = "appointment has been scheduled" in doc or "appointment scheduled" in doc
-    return "discrepancy" if claims_scheduled and status != "SCHEDULED" else "coordination"
+    return ("discrepancy" if document_claims_scheduled(state["record"].get("document", ""))
+            and status != "SCHEDULED" else "coordination")
+
+
+def trace_mode(recommendation: dict | None) -> str:
+    if recommendation and recommendation.get("_telemetry", {}).get("tool_calls"):
+        return "llm-tool-guided"
+    cfg = get_settings()
+    return ("deterministic-fallback" if cfg.llm_base_url and cfg.llm_api_key and cfg.llm_model
+            else "deterministic")
 
 
 def discrepancy_agent(state: InvestigationState) -> InvestigationState:
     add_finding(state, "RECORD_CONFLICT", "The discharge document claims an appointment was scheduled, but the structured record does not confirm it. The true status is unknown.", ["DOC-DISCHARGE", "EHR-FOLLOWUP", "POL-003"], "high")
     state["has_discrepancy"] = True
     recommendation = advise("discrepancy_investigator", {"structured": state["record"]["followup_status"], "document": state["record"]["document"][:800]}, ["additional_evidence_needed", "reason"])
-    state["trace"].append({"agent": "DISCREPANCY_RESOLUTION", "action": "Compare conflicting source claims without assuming which is correct", "tools": ["compare_evidence", "read_structured_status"], "status": "completed", "advisory": recommendation, "mode": "llm-guided" if recommendation else "deterministic"})
+    state["trace"].append({"agent": "DISCREPANCY_RESOLUTION", "action": "Compare conflicting source claims without assuming which is correct", "tools": ["compare_evidence", "read_structured_status"], "status": "completed", "advisory": recommendation, "mode": trace_mode(recommendation)})
     return state
 
 
@@ -94,7 +126,7 @@ def coordination_agent(state: InvestigationState) -> InvestigationState:
         if len(order) == len(tasks) and set(order) == {t["key"] for t in tasks}:
             tasks.sort(key=lambda t: order.index(t["key"]))
     state["tasks"] = tasks
-    state["trace"].append({"agent": "CARE_COORDINATION", "action": "Prepare bounded administrative task drafts; no external writes", "tools": ["task_catalog", "dependency_rules"], "status": "completed", "advisory": recommendation, "mode": "llm-guided" if recommendation else "deterministic"})
+    state["trace"].append({"agent": "CARE_COORDINATION", "action": "Prepare bounded administrative task drafts; no external writes", "tools": ["task_catalog", "dependency_rules"], "status": "completed", "advisory": recommendation, "mode": trace_mode(recommendation)})
     return state
 
 

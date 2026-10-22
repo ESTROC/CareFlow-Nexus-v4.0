@@ -23,8 +23,11 @@
 - [ ] Add real FHIR test server and validate schema/conformance with synthetic patient bundles
 - [ ] Run UCI benchmark against official download, record actual held-out metrics and model card
 - [ ] Run MIMIC demo schema inspection locally under its license, record provenance metadata
-- [ ] Build 100+ independently reviewed workflow evaluation cases and deterministic/single-agent/multi-agent baselines
-- [ ] Add controlled LLM prompt/tool evaluation, latency, cost and tracing metrics
+- [x] Add 120 reproducible developer-labelled synthetic holdout cases (NOT independently reviewed)
+- [x] Add bounded LLM tool-calling contract tests, tool permissions and usage telemetry
+- [ ] Acquire independently reviewed cases and compare deterministic/single-agent/multi-agent baselines
+- [x] Add offline tool-call unit tests and synthetic workflow latency/token-count metrics
+- [ ] Validate tool-calling integration with a real provider key and run repeated cost-controlled LLM experiments
 - [ ] Add real document intelligence with a licensed benchmark and annotated ground truth
 - [ ] Add a justified independent integration (MCP, n8n, Redis workers or event outbox) and demonstrate its value
 - [ ] Add deployment and recovery testing, stricter threat model, SBOM and vulnerability assessment

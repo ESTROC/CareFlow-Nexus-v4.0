@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
+    llm_timeout_seconds: float = 15.0
+    llm_max_rounds: int = 3
+    llm_max_tool_calls_per_round: int = 2
+    llm_input_usd_per_1m_tokens: float = 0.0
+    llm_output_usd_per_1m_tokens: float = 0.0
 
 
 @lru_cache

@@ -16,6 +16,8 @@ jobs:
         run: cd backend && pytest -q
       - name: Deterministic benchmark
         run: python ml/evaluate_workflow.py
+      - name: Synthetic holdout workflow evaluation (120 cases)
+        run: python evals/benchmark.py --split holdout
       - name: Python syntax
         run: python -m compileall -q backend/careflow ml integrations
   frontend:
