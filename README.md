@@ -7,6 +7,22 @@ Four bounded specialists • FastAPI • LangGraph • React • PostgreSQL • 
 
 > **Evidence and safety statement:** This is an **enterprise-style engineering research prototype**, not a deployed hospital product, clinically validated predictor, medical device, or HIPAA-certified service. **Every included case is synthetic.** Human review is required for administrative task decisions. No autonomous clinical decisions, medication recommendations, third-party notifications or writes to external healthcare records occur in this release.
 
+## Frontend — React operations dashboard
+
+**Yes, this repository includes a full frontend**, not only a backend. Open the **[frontend source directory](frontend/)** or the **[frontend guide](frontend/README.md)**.
+
+| UI screen | Available functionality |
+| --- | --- |
+| **Overview** | KPIs, case queue, reviews and proposed/approved tasks |
+| **Case workbench** | Case search, investigations, evidence excerpts, findings, four-agent trace, audit events |
+| **Approval queue** | Supervisor/admin approval or rejection of proposed administrative tasks |
+| **Agent intelligence** | Inspect the four specialist roles and workflow transparency |
+| **Governance** | Permissions, evidence attribution, audit controls and safety limitations |
+
+The frontend entrypoint is [`frontend/src/App.jsx`](frontend/src/App.jsx), with responsive styling in [`frontend/src/style.css`](frontend/src/style.css). **Run `docker compose up --build -d`, then open [http://localhost:8088](http://localhost:8088)** to use the complete UI with its API. Alternatively, run Vite at **http://localhost:5173** alongside the backend.
+
+GitHub's **Security** navigation tab is a built-in repository feature; GitHub does **not** create an automatic **Frontend** tab. The UI lives under the **Code → frontend/** directory. This release does not have a separately deployed public frontend preview or committed application screenshots.
+
 ## What actually works in the core application
 
 - **Responsive case-management interface:** dashboard KPIs, case queue, investigated encounter, findings, evidence excerpts, agent trace and human approval queue.
