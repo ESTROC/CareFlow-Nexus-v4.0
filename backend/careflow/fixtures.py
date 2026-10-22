@@ -1,0 +1,41 @@
+"""All committed case fixtures are fictitious. Never mix with MIMIC or UCI rows."""
+
+POLICIES = [
+    {"id": "POL-001", "name": "Discharge workflow checklist", "version": "DEMO-1",
+     "text": "For this simulation, review the discharge instructions for a documented follow-up arrangement, contact responsibility, and an escalation route when an appointment is unconfirmed. A missing arrangement should produce a verification task; it does not prove unsafe discharge."},
+    {"id": "POL-002", "name": "Pending-result handoff", "version": "DEMO-1",
+     "text": "For this simulation, pending diagnostic results require a named administrative follow-up owner and a documented method for communicating the status to an authorized team. No medical interpretation of the pending result is performed."},
+    {"id": "POL-003", "name": "Record reconciliation", "version": "DEMO-1",
+     "text": "When narrative instructions and structured records disagree, flag the discrepancy for verification against the source system. Do not silently assume that one record is correct or automatically alter an existing clinical record."},
+    {"id": "POL-004", "name": "Care coordination communications", "version": "DEMO-1",
+     "text": "Tasks and external communications are drafts until a supervisor approves the exact content. A human reviewer must determine recipients and authorization before communication."},
+]
+
+CASES = [
+    {"external_ref": "CASE-1001", "patient_ref": "SIM-001", "service": "Cardiology transitions", "priority": "HIGH",
+     "record": {"source": "SYNTHETIC_FIXTURE_V1", "encounter": "ENC-SIM-101", "discharged_at": "2026-10-20T10:00:00Z",
+                "events": [{"id": "EV-101", "at": "2026-10-19T09:00:00Z", "kind": "lab", "summary": "A test result is recorded as pending at discharge."},
+                           {"id": "EV-102", "at": "2026-10-20T08:00:00Z", "kind": "note", "summary": "Discharge instructions prepared."}],
+                "document": "Follow-up appointment has been scheduled. Pending test result to be reviewed by receiving team.",
+                "followup_status": "NOT_SCHEDULED", "pending_result": True, "followup_owner": None}},
+    {"external_ref": "CASE-1002", "patient_ref": "SIM-002", "service": "General medicine", "priority": "NORMAL",
+     "record": {"source": "SYNTHETIC_FIXTURE_V1", "encounter": "ENC-SIM-102", "discharged_at": "2026-10-21T11:00:00Z",
+                "events": [{"id": "EV-201", "at": "2026-10-21T09:00:00Z", "kind": "followup", "summary": "Follow-up appointment logged."}],
+                "document": "Follow-up appointment recorded; no pending laboratory results.",
+                "followup_status": "SCHEDULED", "pending_result": False, "followup_owner": "Coordination Desk"}},
+    {"external_ref": "CASE-1003", "patient_ref": "SIM-003", "service": "Neurology transitions", "priority": "HIGH",
+     "record": {"source": "SYNTHETIC_FIXTURE_V1", "encounter": "ENC-SIM-103", "discharged_at": "2026-10-21T16:00:00Z",
+                "events": [{"id": "EV-301", "at": "2026-10-21T15:00:00Z", "kind": "lab", "summary": "Pending result tracked."}],
+                "document": "Follow-up appointment needs confirmation. Pending result will require review.",
+                "followup_status": "UNKNOWN", "pending_result": True, "followup_owner": "Care Operations"}},
+    {"external_ref": "CASE-1004", "patient_ref": "SIM-004", "service": "Orthopaedics transitions", "priority": "NORMAL",
+     "record": {"source": "SYNTHETIC_FIXTURE_V1", "encounter": "ENC-SIM-104", "discharged_at": "2026-10-19T14:30:00Z",
+                "events": [{"id": "EV-401", "at": "2026-10-19T10:00:00Z", "kind": "discharge", "summary": "Instructions missing follow-up details."}],
+                "document": "Discharge summary filed. Administrative contact information provided.",
+                "followup_status": "UNKNOWN", "pending_result": False, "followup_owner": None}},
+    {"external_ref": "CASE-1005", "patient_ref": "SIM-005", "service": "General medicine", "priority": "NORMAL",
+     "record": {"source": "SYNTHETIC_FIXTURE_V1", "encounter": "ENC-SIM-105", "discharged_at": "2026-10-18T09:00:00Z",
+                "events": [{"id": "EV-501", "at": "2026-10-18T08:30:00Z", "kind": "note", "summary": "Follow-up date documented."}],
+                "document": "Follow-up appointment scheduled. No pending results.",
+                "followup_status": "SCHEDULED", "pending_result": False, "followup_owner": "Coordination Desk"}},
+]

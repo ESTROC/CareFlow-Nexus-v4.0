@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: careflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: careflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careflow -d careflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes: [careflow_pg:/var/lib/postgresql/data]
+    networks: [internal]
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://careflow:${POSTGRES_PASSWORD:?Required}@db:5432/careflow
+      JWT_SECRET: ${JWT_SECRET:?Required}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?Required}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Required}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      DEMO_MODE: "true"
+      CORS_ORIGINS: http://localhost:8088,http://localhost:5173
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [internal]
+    restart: unless-stopped
+  web:
+    build: ./frontend
+    ports: ["127.0.0.1:8088:80"]
+    depends_on: [api]
+    networks: [internal]
+    restart: unless-stopped
+networks:
+  internal:
+volumes:
+  careflow_pg:
